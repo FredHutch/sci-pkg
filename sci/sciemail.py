@@ -1,8 +1,13 @@
+# ### sci-pkg ###
+# sciemail: functions that handle sending email notifications
+#
 
 from string import Template
 import socket, smtplib, re
 
 def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
+    """ example: mail_status(['john@doe.org'], "this subject", "that body")
+    """
 
     if sys.version_info[0] == 2:
         from email.MIMEMultipart import MIMEMultipart
