@@ -12,7 +12,7 @@ mybranch=$(git branch | sed -n '/\* /s///p')
 echo "pushing to branch $mybranch ..."
 git push --tags origin $mybranch
 # python3 setup.py register -r pypi
-python3 setup.py sdist upload -r pypi
+python3 setup.py sdist upload -r pypitest
 
 echo "  Done! Occasionally you may want to remove older tags:"
 echo "git tag 1.2.3 -d"

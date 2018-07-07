@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.0.1"
+__version__ = "0.0.3"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -56,9 +56,9 @@ setup(
     description='a loose collection of frequently used functions in Scientific Computing put into a python package',
     long_description=open('README.rst', 'r').read(),
     packages=['sci'],
-    scripts=[
-        'bin/sci',
-        ],
+    #scripts=[
+    #    'bin/sci',
+    #    ],
     author = 'Dirk Petersen',
     author_email = 'dp@nowhere.com',
     url = 'https://github.com/FredHutch/sci-package',
@@ -66,7 +66,7 @@ setup(
     keywords = ['hpc', 'scientific computing'], # arbitrary keywords
     classifiers = CLASSIFIERS,
     install_requires=[
-        'pandas',
+        #'pandas',
         'requests',
         'python-hostlist',
         ],
