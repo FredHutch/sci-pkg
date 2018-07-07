@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
