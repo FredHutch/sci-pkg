@@ -6,21 +6,20 @@ from string import Template
 import socket, smtplib, re
 
 def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
-    """ example: mail_status(['john@doe.org'], "this subject", "that body")
+    """ example: ret = mail_status(['john@doe.org'], "this subject", "that body")
+
+        every email body starts with this content. $notify_text is substituted with "text":
+            'This is a notification message from $application, running on \n' + \
+            'host $host. Please review the following message:\n\n' + \
+            '$notify_text\n\nIf output is being captured, you may find additional\n' + \
+            'information in your logs.\n'
     """
 
-    if sys.version_info[0] == 2:
-        from email.MIMEMultipart import MIMEMultipart
-        from email.MIMEBase import MIMEBase
-        from email.MIMEText import MIMEText
-        from email.Utils import COMMASPACE, formatdate
-        from email import Encoders
-    else:
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.base import MIMEBase
-        from email.mime.text import MIMEText
-        from email.utils import COMMASPACE, formatdate
-        from email import encoders as Encoders
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.base import MIMEBase
+    from email.mime.text import MIMEText
+    from email.utils import COMMASPACE, formatdate
+    from email import encoders as Encoders
 
     if not isinstance(to,list):
         print("the 'to' parameter needs to be a list")

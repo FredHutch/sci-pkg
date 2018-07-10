@@ -8,3 +8,6 @@ from sci.scinew import *
 from sci.sciold import *
 from sci.scirare import *
 from sci.scistorage import *
+
+name = 'sci'
+

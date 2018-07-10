@@ -6,9 +6,9 @@ A Python 3 package or simply a collection of functions used in scientific comput
 ## design goals
 
 1. simplicity: wrap frequently used workflows into simple functions that make life easier for scientists.  
-2. functional programming paradigm: While using classes is permitted we encourage: write fewer classes and more functions (perhaps with decorators) 
-3. easy to use docstrings 
-4. Cross-platform
+2. functional programming paradigm: While using classes is permitted we encourage writing fewer classes and more functions (perhaps with decorators)
+3. easy to use docstrings, a docsting should tart with an example use case.
+4. Cross-platform: The code should work on Linux (RHEL and Debian based), Windows and Mac OS X.
 
 
 ## How to contribute
