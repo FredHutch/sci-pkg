@@ -5,7 +5,7 @@
 import logging, logging.handlers
 
 def logger(name=None, stderr=False):
-    """ eg: loghandle=sci.logger('loggername')
+    """ eg: loghandle = sci.logger('loggername')
     """
     # levels: CRITICAL:50,ERROR:40,WARNING:30,INFO:20,DEBUG:10,NOTSET:0
     if not name:

@@ -9,6 +9,7 @@ A Python 3 package or simply a collection of functions used in scientific comput
 2. functional programming paradigm: While using classes is permitted we encourage writing fewer classes and more functions (perhaps with decorators)
 3. easy to use docstrings, a docsting should tart with an example use case.
 4. Cross-platform: The code should work on Linux (RHEL and Debian based), Windows and Mac OS X.
+5. Python 3 compatible, In fact it would be best if the code did not even work with Python 2.x.
 
 
 ## How to contribute
