@@ -1,3 +1,4 @@
 pandas
 requests
 python-hostlist
+python-swiftclient

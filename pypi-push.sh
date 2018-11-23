@@ -19,4 +19,7 @@ echo "git tag 1.2.3 -d"
 echo "git push origin :refs/tags/1.2.3"
 
 echo "to test from pypi test use:"
-echo "pip3 install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple --no-cache-dir --upgrade sci"
+echo "$(which pip3) install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple --no-cache-dir --upgrade sci"
+echo "or"
+echo "pip3 install --user --upgrade sci"
+

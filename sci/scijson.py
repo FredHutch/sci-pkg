@@ -15,7 +15,7 @@ def jcompare(jsonfile_or_list,newlist):
     if isinstance(jsonfile_or_list,list):
         oldlist=jsonfile_or_list
     if os.path.exists(jsonfile_or_list):
-        with open(jsonfile_or_list 'r') as f:
+        with open(jsonfile_or_list, 'r') as f:
             oldlist=json.load(f)
 
     addedlist = [item for item in newlist if item not in oldlist]
