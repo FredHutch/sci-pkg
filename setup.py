@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -69,6 +69,7 @@ setup(
         #'pandas',
         'requests',
         'python-hostlist',
+        'python-swiftclient',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
