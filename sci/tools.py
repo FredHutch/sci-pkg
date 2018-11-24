@@ -1,9 +1,73 @@
 # ### sci-pkg ###
-# sciemail: functions that handle sending email notifications
+# tools: commonly used helper functions
 #
 
+import logging, logging.handlers, itertools, pwd
 from string import Template
 import socket, smtplib, re
+
+def logger(name=None, stderr=False):
+    """ eg: loghandle = sci.tools.logger('loggername')
+    """
+    # levels: CRITICAL:50,ERROR:40,WARNING:30,INFO:20,DEBUG:10,NOTSET:0
+    if not name:
+        name=__file__.split('/')[-1:][0]
+    l=logging.getLogger(name)
+    l.setLevel(logging.INFO)
+    f=logging.Formatter('%(name)s: %(levelname)s:%(module)s.%(lineno)d: %(message)s')
+    # logging to syslog
+    s=logging.handlers.SysLogHandler('/dev/log')
+    s.formatter = f
+    l.addHandler(s)
+    if stderr:
+        l.setLevel(logging.DEBUG)
+        # logging to stderr        
+        c=logging.StreamHandler()
+        c.formatter = f
+        l.addHandler(c)
+    return l
+
+def uniq(seq):
+    """ remove duplicates from a list """ 
+    # Not order preserving
+    keys = {}
+    for e in seq:
+        keys[e] = 1
+    return list(keys.keys())
+
+
+def most_common(seq):
+    """ eg: most = most_common(['A','B',B','C'])
+        Which is the most commonly occuring element in a sequence (e.g. list)
+        In this case: 'B'
+    """
+    # get an iterable of (item, iterable) pairs
+    SL = sorted((x, i) for i, x in enumerate(seq))
+    # print 'SL:', SL
+    groups = itertools.groupby(SL, key=operator.itemgetter(0))
+    # auxiliary function to get "quality" for an item
+    def _auxfun(g):
+        item, iterable = g
+        count = 0
+        min_index = len(seq)
+        for _, where in iterable:
+            count += 1
+            min_index = min(min_index, where)
+            # print 'item %r, count %r, minind %r' % (item, count, min_index)
+        return count, -min_index
+        # pick the highest-count/earliest item
+    return max(groups, key=_auxfun)[0]
+
+
+def uid2user(uid):
+    """ eg: user = uid2user(54321)
+        get username based on uidnumber, return uidNumber if fails
+    """
+    try:
+        return pwd.getpwuid(uid).pw_name
+    except:
+        return str(uid)
+
 
 def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
     """ example: ret = mail_status(['john@doe.org'], "this subject", "that body")
@@ -31,7 +95,7 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
     myhost=socket.getfqdn()
 
     if smtphost == '':
-        smtphost = get_mx_from_email_or_fqdn(myhost)
+        smtphost = _get_mx_from_email_or_fqdn(myhost)
     if not smtphost:
         sys.stderr.write('could not determine smtp mail host !\n')
 
@@ -84,7 +148,7 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
 
     return True
 
-def get_mx_from_email_or_fqdn(addr):
+def _get_mx_from_email_or_fqdn(addr):
     """retrieve the first mail exchanger dns name from an email address."""
     # Match the mail exchanger line in nslookup output.
     MX = re.compile(r'^.*\s+mail exchanger = (?P<priority>\d+) (?P<host>\S+)\s*$')
