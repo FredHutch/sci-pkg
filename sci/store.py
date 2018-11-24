@@ -1,6 +1,7 @@
 # ### sci-pkg ###
-# scistorage: functions that handle storage (object/cloud storage, posix file systems)
+# store: functions that handle storage (object/cloud storage, posix file systems)
 #
+
 
 """
 Simplified classes for accessing object storage systems.
@@ -12,7 +13,7 @@ Current limitations:
 
 import os, sys, swiftclient, json, urllib.parse
 
-class SwiftStorage:
+class swift:
     """
     Examples:
     mystor = SwiftStorage('the-bucket', 'virtual/sub/directory')
@@ -41,12 +42,11 @@ class SwiftStorage:
         if not sw_key and not self.authtoken:
             #reading authtoken from file cache in ~/.swift folder
             self.authtoken = self._get_set_token_file(sw_authurl)
-        
+
         options = self._get_swift_options(sw_authurl,sw_user,sw_key)
-                    
+
         self.swiftconn = swiftclient.client.Connection(authurl=sw_authurl, user=sw_user, key=sw_key,  
                 auth_version=sw_auth_version, os_options=options)
-    
         try:
             self.storageurl, newauthtoken = self.swiftconn.get_auth()
         except swiftclient.exceptions.ClientException as e:
@@ -134,7 +134,7 @@ class SwiftStorage:
             return None
 
         metadict = self._fix_metadict(metadict)
-        
+
         resp = dict()
         #self.swiftconn.post_object(self.storageurl, token=self.authtoken, \
         #    bucket=self.bucket, name="%s/%s" % (self.prefix,objname), \
@@ -144,11 +144,11 @@ class SwiftStorage:
 
     def object_put(self, objname, content, metadict=None):
         """ save object to bucket and optionally set metadata using a dict """
-        
+
         if self.bucket == None:
             return None
         metadict = self._fix_metadict(metadict)
-    
+
         #self.swiftconn.put_object(self.storageurl, \
         #    bucket=self.bucket, name="%s/%s" % (self.prefix,objname), \
         #    contents=content, content_length=None, etag=None, chunk_size=None, \
@@ -158,7 +158,7 @@ class SwiftStorage:
         resp = dict()
         ret = self.swiftconn.put_object(self.bucket, "%s/%s" % (self.prefix,objname), content, \
             response_dict=resp, headers=metadict)
-        
+
         #self.swiftconn.put_object()
 
     def _object_ext(self, name):
@@ -182,7 +182,7 @@ class SwiftStorage:
         return metadict2
 
     def _get_swift_options(self, sw_authurl, sw_user, sw_key):
-            
+
         if sw_key:
             if not sw_authurl:
                 print ("Please set env var OS_AUTH_URL, e.g to https://host.domain.org/auth/v2.0")
@@ -205,7 +205,7 @@ class SwiftStorage:
                 return {}
             if not self.storageurl:
                 print ("Please set environment variable OS_STORAGE_URL")
-                return {}                
+                return {}
             options = { 
                 "tenant_name" : self.tenant,
                 "object_storage_url" : self.storageurl,
@@ -222,7 +222,7 @@ class SwiftStorage:
         host = urllib.parse.urlparse(authurl).netloc
         authtokenfile = os.path.join(homedir,'.swift','auth_token_%s_v2_%s' % (host,self.tenant))
         storageurlfile = os.path.join(homedir,'.swift','storageurl_%s_v2_%s' % (host,self.tenant))
-        
+
         if newauthtoken:
             if not os.path.exists(os.path.join(homedir,'.swift')):
                 os.mkdir(os.path.join(homedir,'.swift'))
@@ -241,4 +241,4 @@ class SwiftStorage:
                     self.storageurl = f.readline().strip()
                 return self.authtoken
             else:
-                return ""   
+                return ""

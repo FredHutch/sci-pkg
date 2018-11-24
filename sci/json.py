@@ -1,5 +1,5 @@
 # ### sci-pkg ###
-# scijson: functions that handle json files
+# json: functions that handle json files
 #
 
 import json
