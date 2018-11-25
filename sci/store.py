@@ -9,8 +9,7 @@ Currently only implemented for Swift Storage.
 Current limitations: 
  - swift: object_put function limited to 5GB per object
 """
-
-import os, sys, json, urllib.parse
+import os
 
 class swift:
     """
@@ -41,7 +40,7 @@ class swift:
         ret = mystor.object_meta_set('the-object', {'proj': 'XYZ'):
         dict = mystor.object_meta_get('the-object')
         """
-        import swiftclient
+        import swiftclient, json
         sw_auth_version = 2
         sw_authurl =  os.getenv("OS_AUTH_URL","")
         sw_user = os.getenv("OS_USERNAME", "")
@@ -231,6 +230,7 @@ class swift:
         return options
 
     def _get_set_token_file(self, authurl, newauthtoken=None):
+        import urllib.parse
         homedir = os.path.expanduser("~")        
         host = urllib.parse.urlparse(authurl).netloc
         authtokenfile = os.path.join(homedir,'.swift','auth_token_%s_v2_%s' % (host,self.tenant))
@@ -363,7 +363,7 @@ class s3:
         return ext
 
 
- class google:
+class google:
     """
     Initialize a Google cloud bucket using a certain profile
     Data will be written to the root of the bucket unless the virtual dir
@@ -470,7 +470,7 @@ class s3:
 
 
  
- class azure:
+class azure:
     """
     Initialize an s3 bucket using a certain profile
     Data will be written to the root of the bucket unless the virtual dir

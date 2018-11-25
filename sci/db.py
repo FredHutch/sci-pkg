@@ -11,7 +11,7 @@ class postgres:
     
     the password should be stored in ~/.pgpass
     """
-    def __init__((self, host, dbname, user, password, port=5432):
+    def __init__(self, host, dbname, user, password, port=5432):
         """ 
         just pass in a bucket and an optional prefix. The prefix can be a 
         single virtual folder such as 'subfolder' or a virtual folder 
@@ -19,11 +19,11 @@ class postgres:
         mystor = SwiftStorage('the-bucket', 'virtual/sub/directory') 
         """
         import psycopg2
-    def execute(self, sqlstr)
+    def execute(self, sqlstr):
         """
         execute a sql command on the database
         """
-    def fetch(self, sqlstr)
+    def fetch(self, sqlstr):
         """
         return the result of a SQL query as a dictionary
         """
@@ -41,11 +41,11 @@ class mysql:
         mystor = SwiftStorage('the-bucket', 'virtual/sub/directory') 
         """
         import PyMySQL
-    def execute(self, sqlstr)
+    def execute(self, sqlstr):
         """
         execute a sql command on the database
         """
-    def fetch(self, sqlstr)
+    def fetch(self, sqlstr):
         """
         return the result of a SQL query as a dictionary
         """
@@ -63,11 +63,11 @@ class mssql:
         mystor = SwiftStorage('the-bucket', 'virtual/sub/directory') 
         """
         import pymssql
-    def execute(self, sqlstr)
+    def execute(self, sqlstr):
         """
         execute a sql command on the database
         """
-    def fetch(self, sqlstr)
+    def fetch(self, sqlstr):
         """
         return the result of a SQL query as a dictionary
         """
@@ -83,17 +83,17 @@ class sqlite:
         use :memory: as filename to create the database in RAM 
         """
         import sqlite3
-    def execute(self, sqlstr)
+    def execute(self, sqlstr):
         """
         execute a sql command on the database
         """
-    def fetch(self, sqlstr)
+    def fetch(self, sqlstr):
         """
         return the result of a SQL query as a dictionary
         """
 
 def _getdbpasswd(host, port, dbname, user):
-    passwd = os.path.join(os.path.expanduser("~"),'.sci','.dbpasswd'))
+    passwd = os.path.join(os.path.expanduser("~"),'.sci','.dbpasswd')
     if not os.path.exists(passwd):
         return None 
     with open(passwd, 'r') as f:

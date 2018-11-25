@@ -2,16 +2,18 @@
 The sci package contains helper and wrapper functions
 for scientists  
 """
-#from sci.sciauth import *
-#from sci.scicommon import *
-#from sci.scicompute import *
-#from sci.scidatabase import *
-#from sci.sciemail import mail_status
-#from sci.scijson import *
-#from sci.scinew import *
-#from sci.sciold import *
-#from sci.scirare import *
-#from sci.scistorage import *
+#from sci.store import *
+#from sci.db import *
+#from sci.compute import *
+#from sci.json import *
+#from sci.new import *
+#from sci.old import *
+#from sci.tools import *
 
-#name = 'sci'
-
+import sci.compute
+import sci.store
+import sci.db
+import sci.json
+import sci.tools
+import sci.old
+import sci.new

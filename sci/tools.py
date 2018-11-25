@@ -2,7 +2,7 @@
 # tools: commonly used helper functions
 #
 
-import logging, logging.handlers, itertools, pwd
+import logging, logging.handlers, itertools
 from string import Template
 import socket, smtplib, re
 
@@ -64,6 +64,7 @@ def uid2user(uid):
         get username based on uidnumber, return uidNumber if fails
     """
     try:
+        import pwd
         return pwd.getpwuid(uid).pw_name
     except:
         return str(uid)

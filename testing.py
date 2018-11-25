@@ -1,5 +1,4 @@
-import sci
-import sci
+import sci  
 
 bucket = 'tester'
 prefix = 'toolbox'
