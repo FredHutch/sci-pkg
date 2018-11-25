@@ -70,6 +70,9 @@ setup(
         'requests',
         'python-hostlist',
         'python-swiftclient',
+        'psycopg2',
+        'PyMySQL',
+        'pymssql',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={

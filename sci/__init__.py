@@ -1,3 +1,7 @@
+"""
+The sci package contains helper and wrapper functions
+for scientists  
+"""
 #from sci.sciauth import *
 #from sci.scicommon import *
 #from sci.scicompute import *
@@ -9,5 +13,5 @@
 #from sci.scirare import *
 #from sci.scistorage import *
 
-name = 'sci'
+#name = 'sci'
 

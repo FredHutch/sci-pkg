@@ -2,36 +2,46 @@
 # store: functions that handle storage (object/cloud storage, posix file systems)
 #
 
-
 """
 Simplified classes for accessing object storage systems.
-Currently only implemented for Swift Storage, for example:
+Currently only implemented for Swift Storage.
 
 Current limitations: 
- - SwiftStorage: object_put function limited to 5GB per object
+ - swift: object_put function limited to 5GB per object
 """
 
-import os, sys, swiftclient, json, urllib.parse
+import os, sys, json, urllib.parse
 
 class swift:
     """
-    Examples:
-    mystor = SwiftStorage('the-bucket', 'virtual/sub/directory')
-    my_objects = mystor.bucket_list()
-    my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
-    dict = mystor.object_put('the-object', "THE CONTENT", {tag': 'new'})
-    obj = mystor.object_get('the-object')
-    j = mystor.object_get_json('the-object.json')
-    ret = mystor.object_meta_set('the-object', {'proj': 'XYZ'):
-    dict = mystor.object_meta_get('the-object')
+    Initialize an Openstack Swift container/bucket. 
+    Data will be written to the root of the bucket unless the virtual dir
+    prefix is set.The prefix can be a single virtual folder such as 
+    'subfolder' or a virtual folder such as 'folder/subfolder/subfolder'.     
+    Example:
+        mystor = sci.store.swift('the-bucket', 'virtual/sub/dir') 
+        my_objects = mystor.bucket_list()
+    For authentication you need to have set some environment 
+    variables. This can either be OS_AUTH_URL, OS_TENANT_NAME, 
+    OS_USERNAME, OS_PASSWORD or OS_STORAGE_URL and OS_AUTH_TOKEN. 
+    If you have Swift Commander installed, a new auth token and
+    storage URL will be automatically stored in the ~/.swift
+    folder after you use the 'swc' command. 
     """
+
     def __init__(self, bucket, prefix=None):
         """ 
-        just pass in a bucket and an optional prefix. The prefix can be a 
-        single virtual folder such as 'subfolder' or a virtual folder 
-        such as 'folder/subfolder/subfolder'. Example:
-        mystor = SwiftStorage('the-bucket', 'virtual/sub/directory') 
+        Examples:
+        mystor = swift('the-bucket', 'virtual/sub/directory')
+        my_objects = mystor.bucket_list()
+        my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
+        dict = mystor.object_put('the-object', "THE CONTENT", {tag': 'new'})
+        obj = mystor.object_get('the-object')
+        j = mystor.object_get_json('the-object.json')
+        ret = mystor.object_meta_set('the-object', {'proj': 'XYZ'):
+        dict = mystor.object_meta_get('the-object')
         """
+        import swiftclient
         sw_auth_version = 2
         sw_authurl =  os.getenv("OS_AUTH_URL","")
         sw_user = os.getenv("OS_USERNAME", "")
@@ -65,8 +75,11 @@ class swift:
 
     def bucket_list(self, filter=None):
         """
-        list objects in the bucket/container with the prefix previously initialized
-        the filter should be a dictionary of key: value pairs. Example:
+        return a list of objects from the previously initialized bucket. 
+        This list can be a filtered list by passing in a dictionary of
+        key / value pairs as filter. 
+
+        Example:
         my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
         """
 
@@ -242,3 +255,325 @@ class swift:
                 return self.authtoken
             else:
                 return ""
+
+
+class s3:
+    """
+    Initialize an s3 bucket using a certain profile
+    Data will be written to the root of the bucket unless the virtual dir
+    prefix is set.The prefix can be a single virtual folder such as 
+    'subfolder' or a virtual folder such as 'folder/subfolder/subfolder'.     
+    Example:
+        mystor = sci.store.s3('the-bucket', 'virtual/dir', 'profile') 
+        my_objects = mystor.bucket_list()
+    """
+
+    def __init__(self, bucket, prefix=None, profile='default'):
+        """ 
+        Examples:
+        mystor = s3('the-bucket', 'virtual/sub/directory')
+        """
+        self.s3conn = "s3"
+        self.bucket = bucket
+        self.prefix = prefix
+
+    def bucket_list(self, filter=None):
+        """
+        return a list of objects from the previously initialized bucket. 
+        This list can be a filtered list by passing in a dictionary of
+        key / value pairs as filter. 
+
+        Example:
+        my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
+        """
+
+        if self.bucket == None:
+            return []
+
+        try:
+            listing = self.s3conn.get_container(self.bucket,
+                                           prefix=self.prefix,
+                                           full_listing=True)
+        except:
+            return []
+
+        newlist=[]
+        for item in listing[1]:
+            if item['content_type'] != 'application/directory' and \
+                not item['name'].startswith('.') and not '/.' in item['name']:
+                    if not filter:
+                        newlist.append(item["name"])
+                    else:
+                        meta = self.object_meta_get(item['name'])
+                        # is filter a full subset of meta
+                        if filter.items() <= meta.items():
+                            newlist.append(item["name"])
+
+        #return [item["name"] for item in listing[1]]
+        return newlist
+
+    def object_get(self, objname):
+        """ load the object into memory """
+        if self.bucket == None:
+            return None
+        raw = self.swiftconn.get_object(self.bucket, objname)[1]
+        return raw 
+        #raw = lzma.decompress(compressed)
+        #data = json.loads(raw.decode("utf-8"))
+        # do something with the data ...
+
+    def object_get_json(self, objname):
+        """ load object into memory and de-serialize json """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_get_csv(self, objname):
+        """ load object into memory and convert to csv """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_meta_get(self, objname):
+        """ retrieve custom metadata from object as a dictionary """
+        if self.bucket == None:
+            return None
+        head = self.s3conn.head_object(self.bucket,objname)
+ 
+    def object_meta_set(self, objname, metadict):
+        """ set custom metadata on existing object using a dictionary """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.post_object(self.bucket, "%s/%s" % (self.prefix,objname))        
+
+    def object_put(self, objname, content, metadict=None):
+        """ save object to bucket and optionally set metadata using a dict """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.put_object(self.bucket, "%s/%s" % (self.prefix,objname), content, \
+            response_dict=resp, headers=metadict)
+
+    def _object_ext(self, name):
+        """ get the object extention (like content type) """
+        ext = name.split(".")[-1]
+        if ext == name:
+            return ""
+        return ext
+
+
+ class google:
+    """
+    Initialize a Google cloud bucket using a certain profile
+    Data will be written to the root of the bucket unless the virtual dir
+    prefix is set.The prefix can be a single virtual folder such as 
+    'subfolder' or a virtual folder such as 'folder/subfolder/subfolder'.     
+    Example:
+        mystor = sci.store.google('the-bucket', 'virtual/dir', 'profile') 
+        my_objects = mystor.bucket_list()
+    """
+
+    def __init__(self, bucket, prefix=None, profile='default'):
+        """ 
+        Examples:
+        mystor = s3('the-bucket', 'virtual/sub/directory')
+        """
+        self.s3conn = "s3"
+        self.bucket = bucket
+        self.prefix = prefix
+
+    def bucket_list(self, filter=None):
+        """
+        return a list of objects from the previously initialized bucket. 
+        This list can be a filtered list by passing in a dictionary of
+        key / value pairs as filter. 
+
+        Example:
+        my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
+        """
+
+        if self.bucket == None:
+            return []
+
+        try:
+            listing = self.s3conn.get_container(self.bucket,
+                                           prefix=self.prefix,
+                                           full_listing=True)
+        except:
+            return []
+
+        newlist=[]
+        for item in listing[1]:
+            if item['content_type'] != 'application/directory' and \
+                not item['name'].startswith('.') and not '/.' in item['name']:
+                    if not filter:
+                        newlist.append(item["name"])
+                    else:
+                        meta = self.object_meta_get(item['name'])
+                        # is filter a full subset of meta
+                        if filter.items() <= meta.items():
+                            newlist.append(item["name"])
+
+        #return [item["name"] for item in listing[1]]
+        return newlist
+
+    def object_get(self, objname):
+        """ load the object into memory """
+        if self.bucket == None:
+            return None
+        raw = self.swiftconn.get_object(self.bucket, objname)[1]
+        return raw 
+        #raw = lzma.decompress(compressed)
+        #data = json.loads(raw.decode("utf-8"))
+        # do something with the data ...
+
+    def object_get_json(self, objname):
+        """ load object into memory and de-serialize json """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_get_csv(self, objname):
+        """ load object into memory and convert to csv """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_meta_get(self, objname):
+        """ retrieve custom metadata from object as a dictionary """
+        if self.bucket == None:
+            return None
+        head = self.s3conn.head_object(self.bucket,objname)
+ 
+    def object_meta_set(self, objname, metadict):
+        """ set custom metadata on existing object using a dictionary """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.post_object(self.bucket, "%s/%s" % (self.prefix,objname))        
+
+    def object_put(self, objname, content, metadict=None):
+        """ save object to bucket and optionally set metadata using a dict """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.put_object(self.bucket, "%s/%s" % (self.prefix,objname), content, \
+            response_dict=resp, headers=metadict)
+
+    def _object_ext(self, name):
+        """ get the object extention (like content type) """
+        ext = name.split(".")[-1]
+        if ext == name:
+            return ""
+        return ext
+
+
+ 
+ class azure:
+    """
+    Initialize an s3 bucket using a certain profile
+    Data will be written to the root of the bucket unless the virtual dir
+    prefix is set.The prefix can be a single virtual folder such as 
+    'subfolder' or a virtual folder such as 'folder/subfolder/subfolder'.     
+    Example:
+        mystor = sci.store.azure('the-bucket', 'virtual/dir', 'profile') 
+        my_objects = mystor.bucket_list()
+    """
+
+    def __init__(self, bucket, prefix=None, profile='default'):
+        """ 
+        Examples:
+        mystor = s3('the-bucket', 'virtual/sub/directory')
+        """
+        self.s3conn = "s3"
+        self.bucket = bucket
+        self.prefix = prefix
+
+    def bucket_list(self, filter=None):
+        """
+        return a list of objects from the previously initialized bucket. 
+        This list can be a filtered list by passing in a dictionary of
+        key / value pairs as filter. 
+
+        Example:
+        my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
+        """
+
+        if self.bucket == None:
+            return []
+
+        try:
+            listing = self.s3conn.get_container(self.bucket,
+                                           prefix=self.prefix,
+                                           full_listing=True)
+        except:
+            return []
+
+        newlist=[]
+        for item in listing[1]:
+            if item['content_type'] != 'application/directory' and \
+                not item['name'].startswith('.') and not '/.' in item['name']:
+                    if not filter:
+                        newlist.append(item["name"])
+                    else:
+                        meta = self.object_meta_get(item['name'])
+                        # is filter a full subset of meta
+                        if filter.items() <= meta.items():
+                            newlist.append(item["name"])
+
+        #return [item["name"] for item in listing[1]]
+        return newlist
+
+    def object_get(self, objname):
+        """ load the object into memory """
+        if self.bucket == None:
+            return None
+        raw = self.swiftconn.get_object(self.bucket, objname)[1]
+        return raw 
+        #raw = lzma.decompress(compressed)
+        #data = json.loads(raw.decode("utf-8"))
+        # do something with the data ...
+
+    def object_get_json(self, objname):
+        """ load object into memory and de-serialize json """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_get_csv(self, objname):
+        """ load object into memory and convert to csv """
+        raw = self.object_get(objname)
+        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+
+    def object_meta_get(self, objname):
+        """ retrieve custom metadata from object as a dictionary """
+        if self.bucket == None:
+            return None
+        head = self.s3conn.head_object(self.bucket,objname)
+ 
+    def object_meta_set(self, objname, metadict):
+        """ set custom metadata on existing object using a dictionary """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.post_object(self.bucket, "%s/%s" % (self.prefix,objname))        
+
+    def object_put(self, objname, content, metadict=None):
+        """ save object to bucket and optionally set metadata using a dict """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.s3conn.put_object(self.bucket, "%s/%s" % (self.prefix,objname), content, \
+            response_dict=resp, headers=metadict)
+
+    def _object_ext(self, name):
+        """ get the object extention (like content type) """
+        ext = name.split(".")[-1]
+        if ext == name:
+            return ""
+        return ext
+
+
+ 
