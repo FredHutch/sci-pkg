@@ -2,6 +2,8 @@
 # store: functions that handle storage (object/cloud storage, posix file systems)
 #
 
+import os
+
 """
 Simplified classes for accessing object storage systems.
 Currently only implemented for Swift Storage.
@@ -9,8 +11,6 @@ Currently only implemented for Swift Storage.
 Current limitations: 
  - swift: object_put function limited to 5GB per object
 """
-import os
-
 class swift:
     """
     Initialize an Openstack Swift container/bucket. 
@@ -109,24 +109,80 @@ class swift:
         return newlist
 
     def object_get(self, objname):
-        """ load the object into memory """
+        """
+        load the object into memory
+        Example:
+        content = mystor.object_get('prefix/myobj.json')
+        -------------------
+        for tools using file handles (such as pandas) use io.StringIO or
+        io.BytesIO 
+        handle = io.StringIO(content.decode('utf-8')) 
+           # or handle = io.BytesIO(content)
+        dataframe = pd.read_csv(handle)
+
+        """
         if self.bucket == None:
             return None
-        raw = self.swiftconn.get_object(self.bucket, objname)[1]
-        return raw 
-        #raw = lzma.decompress(compressed)
-        #data = json.loads(raw.decode("utf-8"))
-        # do something with the data ...
+        content = self.swiftconn.get_object(self.bucket, objname)[1]
+        return content 
 
     def object_get_json(self, objname):
-        """ load object into memory and de-serialize json """
-        raw = self.object_get(objname)
-        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+        """ 
+        load object into memory and de-serialize json 
+        Example:
+        j = mystor.object_get_json('prefix/myobj.json')
+        print(json.dumps(j, indent=2))
+        """
+        import json
+        content = self.object_get(objname)
+        return json.loads(content.decode('utf-8'))
 
-    def object_get_csv(self, objname):
-        """ load object into memory and convert to csv """
-        raw = self.object_get(objname)
-        return json.loads(raw.decode()) #json.loads(raw.decode("utf-8"))
+    def object_get_csv(self, objname, dictreader=True, dialect=None):
+        """ 
+        load swift object into memory and return a csv.DictReader object.
+        The DictReader object has the attribute 'fieldnames' that returns
+        the csv header as a list. Optionally you can use csv.reader 
+        instead of csv.DictReader and a different dialect, such as 'excel'.
+        Examples:
+        -----------------------------------------------------------------
+        table = mystor.object_get_csv('prefix/myobj.csv')
+        for row in table:
+            for field in table.fieldnames:
+                print(field,':',row[field])
+        ---------------
+        table = mystor.object_get_csv('toolbox/pi_all.csv',False,'excel')
+        headers = next(table, None)
+        print(headers)
+        for row in table:
+            print (row)
+        -----------------
+        If you do not want to use the internal python csv package you can
+        use the io.StringIO function to create an io handle in memory that
+        can be used instead of a file handle, e.g. for pandas:
+        -----------------
+        content= self.object_get(objname)
+        handle = io.StringIO(content.decode('utf-8')) 
+           # or handle = io.BytesIO(content)
+        dataframe = pd.read_csv(handle)
+        """
+        import io, csv
+        content= self.object_get(objname)
+        if not content:
+            return None
+        handle = io.StringIO(content.decode('utf-8'))
+        # sniffer does not seem to work here
+        #dialect = csv.Sniffer().sniff(handle.read(4096))
+        if dictreader:
+            if dialect:
+                table = csv.DictReader(handle, dialect)
+            else:
+                table = csv.DictReader(handle)
+        else:
+            if dialect:
+                table = csv.reader(handle, dialect)
+            else:
+                table = csv.reader(handle)
+        return table
 
     def object_meta_get(self, objname):
         """ retrieve custom metadata from object as a dictionary """
@@ -155,7 +211,13 @@ class swift:
             headers=metadict, response_dict=resp)        
 
     def object_put(self, objname, content, metadict=None):
-        """ save object to bucket and optionally set metadata using a dict """
+        """ 
+        save object to bucket and optionally set metadata using a dict 
+        
+        import io, pickle
+        newcont = pickle.dump(content)
+        
+        """
 
         if self.bucket == None:
             return None
@@ -167,11 +229,44 @@ class swift:
         #    content_type=None, headers=metadict, http_conn=None, proxy=None, \
         #    query_string=None, response_dict=None, service_token=None)
 
+        if objname.find('/') > -1:
+            obj = objname
+        else:
+            obj = "%s/%s" % (self.prefix,objname)
+
         resp = dict()
-        ret = self.swiftconn.put_object(self.bucket, "%s/%s" % (self.prefix,objname), content, \
+        ret = self.swiftconn.put_object(self.bucket, obj, content, \
             response_dict=resp, headers=metadict)
 
-        #self.swiftconn.put_object()
+    def object_put_json(self, objname, content, metadict=None):
+        """ save json object to bucket and optionally set metadata using a dict """
+        import json
+
+        if self.bucket == None:
+            return None        
+        j = json.dumps(content, indent=4)
+        ret = self.object_put(objname,j,metadict)
+
+    def object_put_pickle(self, objname, content, metadict=None):
+        """ 
+        save pickle object to bucket and optionally set metadata using a dict. 
+        Large Pickle objects can be faster than large json objects, however
+        they are proprietary Python data objects and cannot be used by R, etc.  
+        """
+        import pickle
+
+        if self.bucket == None:
+            return None        
+        p = pickle.dumps(content)
+        ret = self.object_put(objname,p,metadict)
+
+    def object_put_csv(self, objname, content, metadict=None):
+        """ save csv object to bucket and optionally set metadata using a dict """
+
+        if self.bucket == None:
+            return None
+
+        ret = self.object_put(objname,content,metadict)
 
     def _object_ext(self, name):
         """ get the object extention (like content type) """
@@ -237,7 +332,7 @@ class swift:
         storageurlfile = os.path.join(homedir,'.swift','storageurl_%s_v2_%s' % (host,self.tenant))
 
         if newauthtoken:
-            if not os.path.exists(os.path.join(homedir,'.swift')):
+            if not self.os.path.exists(os.path.join(homedir,'.swift')):
                 os.mkdir(os.path.join(homedir,'.swift'))
             if os.path.exists(authtokenfile):
                 os.remove(authtokenfile)
