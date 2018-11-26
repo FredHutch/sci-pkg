@@ -53,7 +53,7 @@ class CustomInstall(install):
 setup(
     name='sci',
     version=__version__,
-    description='a loose collection of frequently used functions in Scientific Computing put into a python package',
+    description='a collection of convenience and wrapper functions supporting tasks frequently needed by scientists',
     long_description=open('README.rst', 'r').read(),
     packages=['sci'],
     #scripts=[
