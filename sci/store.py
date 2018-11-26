@@ -260,13 +260,37 @@ class swift:
         p = pickle.dumps(content)
         ret = self.object_put(objname,p,metadict)
 
-    def object_put_csv(self, objname, content, metadict=None):
-        """ save csv object to bucket and optionally set metadata using a dict """
+    def object_put_csv(self, objname, content, metadict=None, 
+                        dictwriter=False, dialect=None):
+        """ 
+        save csv object to bucket and optionally set metadata using a dict
+        """
+        import io, csv
 
         if self.bucket == None:
             return None
 
-        ret = self.object_put(objname,content,metadict)
+        handle = io.StringIO()
+        # sniffer does not seem to work here
+        #dialect = csv.Sniffer().sniff(handle.read(4096))
+        if dictwriter:
+            if dialect:
+                wr = csv.DictWriter(handle, dialect)
+                wr.writerows(content)
+            else:
+                wr = csv.DictWriter(handle)
+                wr.writerows(content)
+        else:
+            if dialect:
+                wr = csv.writer(handle, dialect)
+                wr.writerows(content)
+            else:
+                wr = csv.writer(handle)
+                wr.writerows(content)
+
+        buffer = handle.getvalue()
+
+        ret = self.object_put(objname,buffer,metadict)
 
     def _object_ext(self, name):
         """ get the object extention (like content type) """
@@ -332,7 +356,7 @@ class swift:
         storageurlfile = os.path.join(homedir,'.swift','storageurl_%s_v2_%s' % (host,self.tenant))
 
         if newauthtoken:
-            if not self.os.path.exists(os.path.join(homedir,'.swift')):
+            if not os.path.exists(os.path.join(homedir,'.swift')):
                 os.mkdir(os.path.join(homedir,'.swift'))
             if os.path.exists(authtokenfile):
                 os.remove(authtokenfile)
