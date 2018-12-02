@@ -13,13 +13,14 @@ Current limitations:
 """
 class swift:
     """
+    Example:
+        mystor = sci.store.swift('the-bucket', 'virtual/sub/dir') 
+        my_objects = mystor.bucket_list()
+    -------------------------
     Initialize an Openstack Swift container/bucket. 
     Data will be written to the root of the bucket unless the virtual dir
     prefix is set.The prefix can be a single virtual folder such as 
     'subfolder' or a virtual folder such as 'folder/subfolder/subfolder'.     
-    Example:
-        mystor = sci.store.swift('the-bucket', 'virtual/sub/dir') 
-        my_objects = mystor.bucket_list()
     For authentication you need to have set some environment 
     variables. This can either be OS_AUTH_URL, OS_TENANT_NAME, 
     OS_USERNAME, OS_PASSWORD or OS_STORAGE_URL and OS_AUTH_TOKEN. 
@@ -75,11 +76,11 @@ class swift:
     def bucket_list(self, filter=None):
         """
         return a list of objects from the previously initialized bucket. 
-        This list can be a filtered list by passing in a dictionary of
-        key / value pairs as filter. 
-
         Example:
         my_filtered_objects = mystor.bucket_list({'proj': 'ABC', 'tag': 'new'})
+        -------------------------
+        This list can be a filtered list by passing in a dictionary of
+        key / value pairs as filter. 
         """
 
         if self.bucket == None:
@@ -110,19 +111,24 @@ class swift:
 
     def object_get(self, objname):
         """
-        load the object into memory
+        Load the object into memory
         Example:
-        content = mystor.object_get('prefix/myobj.json')
-        -------------------
-        for tools using file handles (such as pandas) use io.StringIO or
-        io.BytesIO 
+        content = mystor.object_get('prefix/myobj.json') or
+        content = mystor.object_get('myobj.json') or
+        -------------------------
+        using a prefix path is optional and if no prefix 
+        is added we prepend the default prefix 
+        for tools using file handles (such as pandas) use 
+        io.StringIO or io.BytesIO :
         handle = io.StringIO(content.decode('utf-8')) 
            # or handle = io.BytesIO(content)
         dataframe = pd.read_csv(handle)
-
         """
         if self.bucket == None:
             return None
+
+        objname = self._fix_object_path(objname)
+        
         content = self.swiftconn.get_object(self.bucket, objname)[1]
         return content 
 
@@ -139,27 +145,28 @@ class swift:
 
     def object_get_csv(self, objname, dictreader=True, dialect=None):
         """ 
-        load swift object into memory and return a csv.DictReader object.
-        The DictReader object has the attribute 'fieldnames' that returns
-        the csv header as a list. Optionally you can use csv.reader 
-        instead of csv.DictReader and a different dialect, such as 'excel'.
+        load swift object into memory and de-serialize csv 
         Examples:
         -----------------------------------------------------------------
         table = mystor.object_get_csv('prefix/myobj.csv')
         for row in table:
             for field in table.fieldnames:
                 print(field,':',row[field])
-        ---------------
+        -------------------------
         table = mystor.object_get_csv('toolbox/pi_all.csv',False,'excel')
         headers = next(table, None)
         print(headers)
         for row in table:
             print (row)
-        -----------------
+        -------------------------
+        By default the function returns csv.DictReader object.
+        The DictReader object has the attribute 'fieldnames' that returns
+        the csv header as a list. Optionally you can use csv.reader 
+        instead of csv.DictReader and a different dialect, such as 'excel'.
         If you do not want to use the internal python csv package you can
         use the io.StringIO function to create an io handle in memory that
         can be used instead of a file handle, e.g. for pandas:
-        -----------------
+        -------------------------
         content= self.object_get(objname)
         handle = io.StringIO(content.decode('utf-8')) 
            # or handle = io.BytesIO(content)
@@ -185,9 +192,17 @@ class swift:
         return table
 
     def object_meta_get(self, objname):
-        """ retrieve custom metadata from object as a dictionary """
+        """ 
+        retrieve custom metadata from object as a dictionary
+        Example: 
+        dict = mystor.object_meta_get('myobj.json')
+        -------------------------
+        The function will return a dictionary of metadata 
+        """
         if self.bucket == None:
             return None
+
+        objname = self._fix_object_path(objname)
         head = self.swiftconn.head_object(self.bucket,objname)
         newhead = {}
         for k,v in head.items():
@@ -196,27 +211,34 @@ class swift:
         return newhead
 
     def object_meta_set(self, objname, metadict):
-        """ set custom metadata on existing object using a dictionary """
+        """ 
+        set custom metadata on existing object using a dictionary 
+        Example:
+        dict = mystor.object_meta_set('myobj.json', {'key': 'val', 'x': 'y'})
+        -------------------------
+        The function will re
+
+        """
 
         if self.bucket == None:
             return None
-
+        objname = self._fix_object_path(objname)
         metadict = self._fix_metadict(metadict)
 
         resp = dict()
         #self.swiftconn.post_object(self.storageurl, token=self.authtoken, \
         #    bucket=self.bucket, name="%s/%s" % (self.prefix,objname), \
         #    headers=metadict, http_conn=None, response_dict=resp, service_token=None)
-        ret = self.swiftconn.post_object(self.bucket, "%s/%s" % (self.prefix,objname), \
-            headers=metadict, response_dict=resp)        
+        ret = self.swiftconn.post_object(self.bucket, objname, \
+            headers=metadict, response_dict=resp)
+        return resp
 
     def object_put(self, objname, content, metadict=None):
         """ 
-        save object to bucket and optionally set metadata using a dict 
-        
-        import io, pickle
-        newcont = pickle.dump(content)
-        
+        save object to bucket under prefix and optionally set metadata dict.
+        Example:
+        mystor.object_put('myobj.dat', x, {'key': 'val', 'a': 'b'})
+
         """
 
         if self.bucket == None:
@@ -229,27 +251,32 @@ class swift:
         #    content_type=None, headers=metadict, http_conn=None, proxy=None, \
         #    query_string=None, response_dict=None, service_token=None)
 
-        if objname.find('/') > -1:
-            obj = objname
-        else:
-            obj = "%s/%s" % (self.prefix,objname)
+        objname = self._fix_object_path(objname)
 
         resp = dict()
-        ret = self.swiftconn.put_object(self.bucket, obj, content, \
+        ret = self.swiftconn.put_object(self.bucket, objname, content, \
             response_dict=resp, headers=metadict)
+        return resp
 
     def object_put_json(self, objname, content, metadict=None):
-        """ save json object to bucket and optionally set metadata using a dict """
+        """ 
+        save json object to bucket and optionally set metadata using a dict
+        Example:
+        mystor.object_put('myobj.json', x, {'key': 'val', 'a': 'b'})
+        """
+
         import json
 
         if self.bucket == None:
             return None        
         j = json.dumps(content, indent=4)
-        ret = self.object_put(objname,j,metadict)
+        return self.object_put(objname,j,metadict)
 
     def object_put_pickle(self, objname, content, metadict=None):
         """ 
         save pickle object to bucket and optionally set metadata using a dict. 
+        Example:
+        mystor.object_put_pickle('myobj.dat', x, {'key': 'val', 'a': 'b'})
         Large Pickle objects can be faster than large json objects, however
         they are proprietary Python data objects and cannot be used by R, etc.  
         """
@@ -258,12 +285,13 @@ class swift:
         if self.bucket == None:
             return None        
         p = pickle.dumps(content)
-        ret = self.object_put(objname,p,metadict)
+        return self.object_put(objname,p,metadict)
 
-    def object_put_csv(self, objname, content, metadict=None, 
-                        dictwriter=False, dialect=None):
+    def object_put_csv(self, objname, content, metadict=None, dictwriter=False, dialect=None):
         """ 
         save csv object to bucket and optionally set metadata using a dict
+        Example:
+        mystor.object_put_csv('myobj.csv', x, {'key': 'val', 'a': 'b'})
         """
         import io, csv
 
@@ -290,7 +318,7 @@ class swift:
 
         buffer = handle.getvalue()
 
-        ret = self.object_put(objname,buffer,metadict)
+        return self.object_put(objname,buffer,metadict)
 
     def _object_ext(self, name):
         """ get the object extention (like content type) """
@@ -298,6 +326,19 @@ class swift:
         if ext == name:
             return ""
         return ext
+
+    def _fix_object_path(self, objname):
+        """ 
+        add object prefix if needed 
+        """
+        if objname.find('/') > -1:
+            obj = objname
+        else:
+            if not self.prefix:
+                obj = objname
+            else:
+                obj = "%s/%s" % (self.prefix,objname)
+        return obj
 
     def _fix_metadict(self, metadict):
         """ ensure that x-object-meta prefix is added to all metadata keys """

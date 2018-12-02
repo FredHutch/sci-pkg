@@ -1,19 +1,24 @@
-import sci  
+import sci, os, sys
 
-bucket = 'tester'
-prefix = 'toolbox'
 filter = {'tag1': 'val1', 'tag2': 'val2'}
  
 print('init swift...')
-conn = sci.store.swift(bucket, prefix)
+mystor = sci.store.swift('tester', 'toolbox')
 
- 
+c = mystor.object_get_csv()
+
 print('list bucket...')
-names = conn.bucket_list(filter)
+names = sci.store.
 print(len(names),names)
 
-names = conn.bucket_list()
+names = mystor.bucket_list()
 print(len(names),names)
+
+mydict = mystor.object_meta_get('moin2.csv')
+print(mydict)
+
+ret = mystor.object_meta_set('moin2.csv', {'tag1': 'val1', 'tag2': 'val2'})
+#print(ret)
 
 import io
 import csv
@@ -21,7 +26,7 @@ import json
 
 print('read csv...')
 
-table=conn.object_get_csv('toolbox/pi_all.csv',False,'excel')
+table=mystor.object_get_csv('toolbox/pi_all.csv',False,'excel')
 #headers = next(table, None)
 #print(headers)
 #print('-----------------------')
@@ -29,22 +34,22 @@ table=conn.object_get_csv('toolbox/pi_all.csv',False,'excel')
 #    print (row)
 
 print('object_put dump ...')
-ret = conn.object_put_csv('toolbox/pi_all.dump5.csv', table)
+ret = mystor.object_put_csv('toolbox/pi_all.dump5.csv', table)
+print(ret)
 
-j = conn.object_get_json('toolbox/pi_all.json')
+j = mystor.object_get_json('toolbox/pi_all.json')
 pis = sci.json.jget(j,'pi_dept')
 #print(pis)
-ret = conn.object_put_pickle('toolbox/pi_list4', pis)
-print(ret)
+ret = mystor.object_put_pickle('toolbox/pi_list4', pis)
+
 
 #print(json.dumps(j, indent=2))
 
 print('load slurm jobs')
-#table1=conn.object_get_csv('toolbox/slurm_jobs.csv',False,'excel')
+#table1=mystor.object_get_csv('toolbox/slurm_jobs.csv',False,'excel')
 
 print('save slurm jobs to pickle')
-#ret = conn.object_put_pickle('toolbox/slurm_jobs.pickle', table1)
+#ret = mystor.object_put_pickle('toolbox/slurm_jobs.pickle', table1)
 
-
-
+ret=mystor.bucket_list()
 
