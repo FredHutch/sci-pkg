@@ -1,6 +1,9 @@
 # ### sci-pkg ###
 # store: functions that handle storage (object/cloud storage, posix file systems)
-#
+# definitions: 
+#   Object: a chunk of information stored in an Object Store
+#   File a chunk of information that touches file system
+#   file_upload turns file into an object and file_download goes vice versa
 
 import os
 
@@ -41,7 +44,9 @@ class swift:
         ret = mystor.object_meta_set('the-object', {'proj': 'XYZ'):
         dict = mystor.object_meta_get('the-object')
         """
+
         import swiftclient, json
+
         sw_auth_version = 2
         sw_authurl =  os.getenv("OS_AUTH_URL","")
         sw_user = os.getenv("OS_USERNAME", "")
@@ -52,26 +57,31 @@ class swift:
         if not sw_key and not self.authtoken:
             #reading authtoken from file cache in ~/.swift folder
             self.authtoken = self._get_set_token_file(sw_authurl)
-
-        options = self._get_swift_options(sw_authurl,sw_user,sw_key)
+        self.optsauth = self._get_swift_options(sw_authurl,sw_user,sw_key)
 
         self.swiftconn = swiftclient.client.Connection(authurl=sw_authurl, user=sw_user, key=sw_key,  
-                auth_version=sw_auth_version, os_options=options)
+                auth_version=sw_auth_version, os_options=self.optsauth)
         try:
             self.storageurl, newauthtoken = self.swiftconn.get_auth()
         except swiftclient.exceptions.ClientException as e:
             print("Connection Error: %s" % e.msg)
-            self.bucket = None
-            self.prefix = None
-            return
+            self._exiterr()
+
+        self.bucket = bucket
+        self.prefix = prefix
 
         if self.authtoken != newauthtoken:
             self.authtoken == newauthtoken
             # writing new authtoken to file cache in ~/.swift folder
             self._get_set_token_file(sw_authurl, newauthtoken)
+            
+        os.environ["OS_AUTH_TOKEN"] = self.authtoken
+        self.optsauth['os_auth_token'] = self.authtoken
+        self.optsauth['auth_token'] = self.authtoken
+        os.environ["OS_STORAGE_URL"] = self.authtoken
+        self.optsauth['os_storage_url'] = self.storageurl
+        self.optsauth['object_storage_url'] = self.storageurl
 
-        self.bucket = bucket
-        self.prefix = prefix
 
     def bucket_list(self, filter=None):
         """
@@ -109,6 +119,114 @@ class swift:
         #return [item["name"] for item in listing[1]]
         return newlist
 
+    def file_download(self, objnames, folder=None):
+        """
+        Download a list of objects to files. If the list has a single object
+        the target "filepath" can be a file, otherwise the target will be a 
+        local folder, if "filepath" is omitted we copy to the current folder.
+        Example:
+        c = mystor.file_download(['prefix/f.txt'], 'fld/fld2') or
+        c = mystor.file_download(['f.txt','g.txt'], 'fld') or
+        c = mystor.file_download(['f.txt','g.txt']) or
+        -------------------------
+        returns a list of downloaded files or an empty list in a case of error
+        """
+        # see https://docs.openstack.org/python-swiftclient/latest/service-api.html
+
+        import swiftclient.service 
+
+        if self.bucket == None:
+            return []
+
+        objnames = self._fix_object_path(objnames)
+
+        startdir= os.getcwd()
+        if folder:
+            folder = os.path.expanduser(folder)
+            if not os.path.exists(folder):
+                print('folder does not exist: %s' % folder)
+                return False
+            else:
+                os.chdir(folder)
+
+        currdir=os.getcwd()
+        downloaded_files = []
+        with swiftclient.service.SwiftService(options=self.optsauth) as sw:
+            try:
+                print("Downloading to '%s' ..." % currdir)
+                for r in sw.download(
+                        container=self.bucket,
+                        objects=objnames):
+                    if r['success']:
+                        if 'object' in r and 'path' in r:
+                            print("'%s' downloaded to '%s'" % (r['object'],r['path']))
+                            downloaded_files.append(os.path.join(currdir,r['path']))
+                    else:
+                        if 'object' in r and 'path' in r:
+                            print("'%s' download to '%s' failed" % (r['object'],r['path']))
+                        if 'error' in r and 'attempts' in r:
+                            print("  Error: '%s', attempts: %s" % (r['error'],r['attempts']))
+
+            except swiftclient.service.SwiftError as e:
+                print("Error:", e.value)
+
+        os.chdir(startdir)
+        return downloaded_files
+
+    def file_upload(self, filepaths, objname=None, metadict=None):
+        """
+        Upload a list of files. If the list has a single entry it will be 
+        copied to the target "prefix/objname", otherwise objname is ignored.
+        if "objname" is omitted, the object is called prefix/filename. 
+        Example:
+        c = mystor.file_upload(['fld/f.txt'], 'x.txt') or
+        c = mystor.file_upload(['f.txt','g.txt'])
+        ------------------------- 
+        returns a list of uploaded objects or an empty list in a case of error
+        """
+        # see https://docs.openstack.org/python-swiftclient/latest/service-api.html
+        import swiftclient.service, getpass
+
+        if self.bucket == None:
+            return []
+
+        uploaded_objects = []
+        with swiftclient.service.SwiftService(options=self.optsauth) as sw:
+
+            objs = self._fix_file_paths(filepaths)
+            objs = [
+                swiftclient.service.SwiftUploadObject(
+                    #o, object_name=o.replace(
+                    #dir, 'my-%s-objects' % dir, 1)
+                    o, object_name=self._upload_object_name(o)
+                ) for o in objs
+            ]
+            # if there is only 1 file and target objname is set
+            if objname and len(objs) == 1:
+                objs[0].object_name=self._fix_object_path([objname])[0]
+
+            #for o in objs:
+            #    print("***",o.object_name,o.source)
+
+            for r in sw.upload(container=self.bucket, 
+                objects=objs, 
+                options={'segment_size':104857600,
+                        'use_slo':True,
+                        'meta': {'uploaded-by': getpass.getuser()},
+                        'segment_container':'.segments_'+self.bucket,
+                        'shuffle': True}):
+                if r['success']:
+                    if 'object' in r and 'status' in r:
+                        print("object '%s' %s." % (r['object'],r['status']))
+                        uploaded_objects.append(r['object'])
+                else:
+                    if 'object' in r:
+                        print("object '%s' upload failed" % r['object'])
+                    if 'error' in r:
+                        print("  Error: '%s'" % r['error'])
+        return uploaded_objects
+
+
     def object_get(self, objname):
         """
         Load the object into memory
@@ -127,7 +245,7 @@ class swift:
         if self.bucket == None:
             return None
 
-        objname = self._fix_object_path(objname)
+        objname = self._fix_object_path([objname])[0]
         
         content = self.swiftconn.get_object(self.bucket, objname)[1]
         return content 
@@ -202,7 +320,7 @@ class swift:
         if self.bucket == None:
             return None
 
-        objname = self._fix_object_path(objname)
+        objname = self._fix_object_path([objname])[0]
         head = self.swiftconn.head_object(self.bucket,objname)
         newhead = {}
         for k,v in head.items():
@@ -216,13 +334,11 @@ class swift:
         Example:
         dict = mystor.object_meta_set('myobj.json', {'key': 'val', 'x': 'y'})
         -------------------------
-        The function will re
-
+        The function will return ????
         """
-
         if self.bucket == None:
             return None
-        objname = self._fix_object_path(objname)
+        objname = self._fix_object_path([objname])[0]
         metadict = self._fix_metadict(metadict)
 
         resp = dict()
@@ -251,7 +367,7 @@ class swift:
         #    content_type=None, headers=metadict, http_conn=None, proxy=None, \
         #    query_string=None, response_dict=None, service_token=None)
 
-        objname = self._fix_object_path(objname)
+        objname = self._fix_object_path([objname])[0]
 
         resp = dict()
         ret = self.swiftconn.put_object(self.bucket, objname, content, \
@@ -327,18 +443,47 @@ class swift:
             return ""
         return ext
 
-    def _fix_object_path(self, objname):
+    def _exiterr(self):
+        import sys
+        sys.exit(1)
+    
+    def _fix_object_path(self, objnames):
         """ 
-        add object prefix if needed 
-        """
-        if objname.find('/') > -1:
-            obj = objname
-        else:
-            if not self.prefix:
-                obj = objname
+        add object prefix to list of objects if needed 
+        """        
+        newobjs=[]
+        for o in objnames:
+            #print('######## o type', type(o), 0)
+            if o.find('/') > -1:
+                obj = o
             else:
-                obj = "%s/%s" % (self.prefix,objname)
-        return obj
+                if not self.prefix:
+                    obj = o
+                else:
+                    obj = "%s/%s" % (self.prefix,o)
+            newobjs.append(obj)                
+        return newobjs
+
+    def _upload_object_name(self, objname):
+        """ 
+        add object prefix to single upload object
+        """        
+        if objname.startswith(self.prefix+'/'):
+            o = objname
+        elif os.path.isabs(objname):
+            o=self.prefix+'/'+os.path.basename(objname)
+        else:
+            o=self.prefix+'/'+objname
+        return o.replace('//','/')
+
+    def _fix_file_paths(self, files):
+        """ 
+        changing back to forward slashes (for windows)
+        """
+        newfiles=[]
+        for f in files:
+            newfiles.append(f.replace('\\','/'))
+        return newfiles
 
     def _fix_metadict(self, metadict):
         """ ensure that x-object-meta prefix is added to all metadata keys """
@@ -366,8 +511,11 @@ class swift:
                 print ("Please set environment variable OS_TENANT_NAME, e.g. AUTH_tenantname")
                 return {}
             print('  using password to authenticate ...')
-            options = { 
-                "tenant_name" : self.tenant,
+            options = {
+                "auth_version": "2.0",
+                "tenant_name": self.tenant,
+                "os_tenant_name": self.tenant,
+
                 # or service_type, endpoint_type, tenant_name, object_storage_url, 
                 # region_name, service_username, service_project_name, service_key
             }
@@ -378,8 +526,10 @@ class swift:
             if not self.storageurl:
                 print ("Please set environment variable OS_STORAGE_URL")
                 return {}
-            options = { 
+            options = {
+                "auth_version": "2.0",
                 "tenant_name" : self.tenant,
+                "os_tenant_name": self.tenant,
                 "object_storage_url" : self.storageurl,
                 "auth_token" : self.authtoken,
             }
@@ -415,6 +565,7 @@ class swift:
                 return self.authtoken
             else:
                 return ""
+
 
 
 class s3:
@@ -734,6 +885,3 @@ class azure:
         if ext == name:
             return ""
         return ext
-
-
- 
