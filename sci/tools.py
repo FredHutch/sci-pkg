@@ -35,6 +35,15 @@ def uniq(seq):
         keys[e] = 1
     return list(keys.keys())
 
+def getcsv(url):
+    """ read a large csv file from a web server"""
+    import requests, contextlib, csv
+
+    with contextlib.closing(requests.get(url, stream=True)) as r:
+        f = (line.decode('utf-8') for line in r.iter_lines())
+        reader = csv.reader(f, delimiter=',', quotechar='"')
+        for row in reader:
+            print(row)
 
 def most_common(seq):
     """ eg: most = most_common(['A','B',B','C'])
