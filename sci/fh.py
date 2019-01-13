@@ -1,10 +1,6 @@
 # ### sci-pkg ###
-# fh: Fred Hutch specific Helper functions 
+# fh: Fred Hutch specific helper functions 
 #     (e.g. toolbox and pubmed stuff) 
-
-#import csv, json, requests
-#from Bio import Entrez
-#from collections import OrderedDict
 
 def getToolbox(jsonfile):
     """
