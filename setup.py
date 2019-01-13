@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -66,13 +66,14 @@ setup(
     keywords = ['hpc', 'scientific computing'], # arbitrary keywords
     classifiers = CLASSIFIERS,
     install_requires=[
-        #'pandas',
+        'pandas',
         'requests',
         'python-hostlist',
         'python-swiftclient',
         'psycopg2',
         'PyMySQL',
         'pymssql',
+        'biopython',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
