@@ -147,6 +147,7 @@ def getPeers (j, authors, lastname, forename, initial, institute='Fred Hutch'):
     """ get peer faculty from same institution, affiliation info in publication needs
         to include string institute, e.g. Fred Hutch'
     """
+    import sci
     peers=[]
     if not j:
         return peers
