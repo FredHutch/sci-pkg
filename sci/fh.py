@@ -21,7 +21,7 @@ def getToolbox(jsonfile):
 
 ###### interaction with Pubmed ############################
 
-def getPapers(j, papers, pi, lastname, forename, initial, prn=True):
+def getPapers(j, papers, pi, lastname, forename, initial, sinceyear, prn=True):
     if not papers:
         return []
     k=0
@@ -51,7 +51,7 @@ def getPapers(j, papers, pi, lastname, forename, initial, prn=True):
             month=_month2num(journal['JournalIssue']['PubDate']['Month'])
             year=journal['JournalIssue']['PubDate']['Year']
 
-        if year == '' or year < args.sinceyear:
+        if year == '' or year < sinceyear:
             continue
 
         k+=1
