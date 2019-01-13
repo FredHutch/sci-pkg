@@ -2,7 +2,7 @@
 The sci package contains helper and wrapper functions
 for scientists  
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 #from sci.store import *
 #from sci.db import *
@@ -15,6 +15,7 @@ __version__ = "0.1.0"
 import sci.compute
 import sci.store
 import sci.db
+import sci.fh
 import sci.json
 import sci.tools
 import sci.old
