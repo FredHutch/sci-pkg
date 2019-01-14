@@ -10,6 +10,7 @@ def jcompare(jsonfile_or_list,newlist):
     a list of newly added items and a list of removed items.
     The old list can be a Python list or a json list stored in the file system
     """
+    import os
     oldlist = []
     addedlist, removedlist = newlist, []
     if isinstance(jsonfile_or_list,list):
