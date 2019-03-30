@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -71,11 +71,6 @@ setup(
         'psycopg2',
         'PyMySQL',
         'pymssql',
-        ],
-    extras_require=[
-        'pandas',
-        'python-swiftclient',
-        'biopython',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
