@@ -2,13 +2,12 @@
 # tools: commonly used helper functions
 #
 
-import logging, logging.handlers, itertools
-from string import Template
-import socket, smtplib, re
+import os, socket
 
 def logger(name=None, stderr=False):
     """ eg: loghandle = sci.tools.logger('loggername')
     """
+    import logging, logging.handlers
     # levels: CRITICAL:50,ERROR:40,WARNING:30,INFO:20,DEBUG:10,NOTSET:0
     if not name:
         name=__file__.split('/')[-1:][0]
@@ -50,6 +49,7 @@ def most_common(seq):
         Which is the most commonly occuring element in a sequence (e.g. list)
         In this case: 'B'
     """
+    import itertools
     # get an iterable of (item, iterable) pairs
     SL = sorted((x, i) for i, x in enumerate(seq))
     # print 'SL:', SL
@@ -78,7 +78,6 @@ def uid2user(uid):
     except:
         return str(uid)
 
-
 def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
     """ example: ret = mail_status(['john@doe.org'], "this subject", "that body")
 
@@ -88,7 +87,22 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
             '$notify_text\n\nIf output is being captured, you may find additional\n' + \
             'information in your logs.\n'
     """
+    from string import Template
 
+    body = Template('This is a notification message from $application, running on \n' + \
+            'host $host. Please review the following message:\n\n' + \
+            '$notify_text\n\nIf output is being captured, you may find additional\n' + \
+            'information in your logs.\n'
+            )
+    host_name = socket.gethostname()
+    full_body = body.substitute(host=host_name.upper(), notify_text=text, application=os.path.basename(__file__))
+
+    return mail_send(to,subject,full_body,attachments,cc,bcc,smtphost,fromaddr) 
+
+def mail_send(to, subject, body, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
+    """ example: ret = mail_send(['john@doe.org'], 'this subject', 'that body',['attach'])"""
+
+    import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
     from email.mime.text import MIMEText
@@ -127,15 +141,7 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
     message['Cc'] = COMMASPACE.join(cc)
     message['Bcc'] = COMMASPACE.join(bcc)
 
-    body = Template('This is a notification message from $application, running on \n' + \
-            'host $host. Please review the following message:\n\n' + \
-            '$notify_text\n\nIf output is being captured, you may find additional\n' + \
-            'information in your logs.\n'
-            )
-    host_name = socket.gethostname()
-    full_body = body.substitute(host=host_name.upper(), notify_text=text, application=os.path.basename(__file__))
-
-    message.attach(MIMEText(full_body))
+    message.attach(MIMEText(body))
 
     for f in attachments:
         part = MIMEBase('application', 'octet-stream')
@@ -160,6 +166,7 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
 
 def _get_mx_from_email_or_fqdn(addr):
     """retrieve the first mail exchanger dns name from an email address."""
+    import re
     # Match the mail exchanger line in nslookup output.
     MX = re.compile(r'^.*\s+mail exchanger = (?P<priority>\d+) (?P<host>\S+)\s*$')
     # Find mail exchanger of this email address or the current host

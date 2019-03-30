@@ -1,7 +1,13 @@
-import sci, os, sys, glob
-import io, csv, json 
+import sci, os, sys, glob, io, csv, json
 
 # testing the sci package 
+print('sci version',sci.__version__)
+print('sci path',sci.__path__)
+
+# mailer test 
+
+ret = sci.tools.mail_status(['dirk14@fredhutch.org'], 'this subject', 'that body',['README.md'])
+sys.exit()
 
 ## sci.store.swift tests 
 
