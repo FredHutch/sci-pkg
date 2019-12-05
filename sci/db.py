@@ -62,7 +62,7 @@ class mssql:
         such as 'folder/subfolder/subfolder'. Example:
         mystor = SwiftStorage('the-bucket', 'virtual/sub/directory') 
         """
-        import pymssql
+        import pyodbc
     def execute(self, sqlstr):
         """
         execute a sql command on the database

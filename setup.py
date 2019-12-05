@@ -70,7 +70,7 @@ setup(
         'python-hostlist',
         'psycopg2',
         'PyMySQL',
-        'pymssql',
+        'pyodbc',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
