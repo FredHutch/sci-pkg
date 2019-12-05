@@ -12,3 +12,11 @@ jobs:
     - name: GitHub Action for pylint
       uses: dtenenba/GitHub-Action-for-pylint@0.7.2
       with: {"args": "pip install . ; echo -e '\n\n\nPYLINT OUTPUT STARTS HERE:\n\n\n' ; pylint --exit-zero -j 0 **/*.py"}
+    - name: build dists
+      run: python setup.py sdist bdist_wheel
+    - name: Publish package to TestPyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: __token__
+        password: ${{ secrets.test_pypi_password }}
+        repository_url: https://test.pypi.org/legacy/
