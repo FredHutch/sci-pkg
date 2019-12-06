@@ -4,8 +4,9 @@ on: [push]
 
 jobs:
   build:
+    container: python:3.8.0
 
-    runs-on: ubuntu-latest
+    # runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
