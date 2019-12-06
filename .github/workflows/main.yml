@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   build:
+    # this is just python:3.8.0 with the apt package unixodbc-dev installed:
     container: fredhutch/python-pyodbc:3.8.0
 
     runs-on: ubuntu-latest

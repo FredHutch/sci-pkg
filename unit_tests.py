@@ -16,7 +16,6 @@ class GetToolboxTestCase(unittest.TestCase):
         mock.json.return_value = '{"foo": "bar"}'
         mock_requests.get.return_value = mock
         ret = sci.fh.getToolbox("somefile.json")
-        ret = sci.fh.getToolbox("somefile.json")
         mock_requests.get.assert_called_once()
         assert ret == '{"foo": "bar"}'
 
