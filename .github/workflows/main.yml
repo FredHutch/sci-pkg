@@ -15,7 +15,7 @@ jobs:
     - name: build dist
       run: rm -rf dist/* && python setup.py sdist
     - name: publish package to test
-      run: find / | grep twine;twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
+      run: pip install twine;twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
     - name: publish package to prod
       # TODO change ci-dev to master below:
       if: github.ref == 'ci-dev'
