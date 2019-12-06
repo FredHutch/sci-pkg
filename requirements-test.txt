@@ -6,3 +6,4 @@ biopython
 psycopg2
 PyMySQL
 pyodbc
+twine
