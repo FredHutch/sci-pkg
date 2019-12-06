@@ -14,7 +14,9 @@ jobs:
       uses: dtenenba/GitHub-Action-for-pylint@0.7.2
       with: {"args": "pip install . ; echo -e '\n\n\nPYLINT OUTPUT STARTS HERE:\n\n\n' ; pylint --exit-zero -j 0 **/*.py"}
     - name: run unit tests
-      run: python unit_tests.py
+      run: |
+        pip install .
+        python unit_tests.py
     - name: build dist
       run: rm -rf dist/* && python setup.py sdist
     - name: publish package to test
