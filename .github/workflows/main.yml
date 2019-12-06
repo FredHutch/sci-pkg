@@ -12,21 +12,11 @@ jobs:
     - name: GitHub Action for pylint
       uses: dtenenba/GitHub-Action-for-pylint@0.7.2
       with: {"args": "pip install . ; echo -e '\n\n\nPYLINT OUTPUT STARTS HERE:\n\n\n' ; pylint --exit-zero -j 0 **/*.py"}
-    - name: build dist for test
-      run: python setup-test.py sdist
-      # vvv run on master only? vvv
-    - name: Publish package to TestPyPI
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.test_pypi_password }}
-        repository_url: https://test.pypi.org/legacy/
-    - name: build dist for prod
+    - name: build dist
       run: rm -rf dist/* && python setup.py sdist
-    - name: Publish package to prod
+    - name: publish package to test
+      run: twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
+    - name: publish package to prod
       # TODO change ci-dev to master below:
-      if: github.ref == 'ci-dev' && github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+      if: github.ref == 'ci-dev'
+      run: twine upload --repository-url https://upload.pypi.org/legacy/ -u __token__ -p  ${{ secrets.pypi_password }} --skip-existing dist/*

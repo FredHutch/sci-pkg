@@ -5,4 +5,5 @@ python-swiftclient
 biopython
 psycopg2
 PyMySQL
-pymssql
+pyodbc
+twine
