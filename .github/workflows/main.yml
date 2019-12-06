@@ -17,10 +17,10 @@ jobs:
     - name: publish package to test
       run: |
         pip install twine
-        twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
+        python -m twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
     - name: publish package to prod
       # TODO change ci-dev to master below:
       if: github.ref == 'ci-dev'
       run:  |
         pip install twine
-        twine upload --repository-url https://upload.pypi.org/legacy/ -u __token__ -p  ${{ secrets.pypi_password }} --skip-existing dist/*
+        python -m twine upload --repository-url https://upload.pypi.org/legacy/ -u __token__ -p  ${{ secrets.pypi_password }} --skip-existing dist/*
