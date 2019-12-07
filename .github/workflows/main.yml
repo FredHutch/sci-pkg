@@ -4,8 +4,7 @@ on: [push]
 
 jobs:
   build:
-    # this is just python:3.8.0 with the apt package unixodbc-dev installed:
-    container: fredhutch/python-pyodbc:3.8.0
+    container: python:3.8.0
 
     runs-on: ubuntu-latest
 
@@ -14,6 +13,8 @@ jobs:
     - uses: actions/setup-python@v1
     - name: myPylint
       run: |
+        sudo apt-get update -y
+        sudo apt-get install -y unixodbc-dev
         pip install --user .
         pip install --user pylint
         echo -e '\n\n\nPYLINT OUTPUT STARTS HERE:\n\n\n'
