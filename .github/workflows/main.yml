@@ -13,8 +13,8 @@ jobs:
     - uses: actions/setup-python@v1
     - name: myPylint
       run: |
-        sudo apt-get update -y
-        sudo apt-get install -y unixodbc-dev
+        apt-get update -y
+        apt-get install -y unixodbc-dev
         pip install --user .
         pip install --user pylint
         echo -e '\n\n\nPYLINT OUTPUT STARTS HERE:\n\n\n'
