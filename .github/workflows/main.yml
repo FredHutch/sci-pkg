@@ -17,6 +17,7 @@ jobs:
         apt-get install -y unixodbc-dev
         pip install --user .
         pip install --user pylint
+        pip install --user twine
     - name: pylint
       run: ~/.local/bin/pylint --exit-zero -j 0 **/*.py
     - name: run unit tests
@@ -26,7 +27,6 @@ jobs:
       run: rm -rf dist/* && python setup.py sdist
     - name: publish package to test
       run: |
-        pip install --user twine
         python -m twine upload --repository-url https://test.pypi.org/legacy/ -u __token__ -p  ${{ secrets.test_pypi_password }} --skip-existing dist/*
     - name: publish package to prod
       if: github.ref == 'refs/heads/master'
