@@ -23,8 +23,8 @@ CLASSIFIERS = [
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities"
 ]
-OSPKG_APT=['fping',]
-OSPKG_YUM=['fping',]
+OSPKG_APT=['fping','unixodbc-dev']
+OSPKG_YUM=['fping','unixODBC-devel']
 
 class CustomInstall(install):
     def run(self):
