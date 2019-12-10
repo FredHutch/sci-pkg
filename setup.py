@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -71,6 +71,7 @@ setup(
         'psycopg2',
         'PyMySQL',
         'pyodbc',
+        'python-swiftclient'
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
