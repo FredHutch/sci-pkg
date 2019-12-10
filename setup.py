@@ -72,7 +72,7 @@ setup(
         'PyMySQL',
         'pyodbc',
         'python-swiftclient',
-        'python-keystoneclient'
+        'python-keystoneclient',
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
