@@ -71,7 +71,8 @@ setup(
         'psycopg2',
         'PyMySQL',
         'pyodbc',
-        'python-swiftclient'
+        'python-swiftclient',
+        'python-keystoneclient'
         ],
     cmdclass={'install': CustomInstall},
     #entry_points={
