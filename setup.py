@@ -2,7 +2,7 @@ import os, sys, subprocess, atexit
 from setuptools import setup
 from setuptools.command.install import install
 
-__version__ = "0.1.7"
+__version__ = "0.1.8"
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -68,7 +68,7 @@ setup(
     install_requires=[
         'requests',
         'python-hostlist',
-        'psycopg2',
+        'psycopg2-binary',
         'PyMySQL',
         'pyodbc',
         'python-swiftclient',
