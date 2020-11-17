@@ -99,10 +99,10 @@ def mail_status(to, subject, text, attachments=[], cc=[], bcc=[], smtphost="", f
 
     return mail_send(to,subject,full_body,attachments,cc,bcc,smtphost,fromaddr) 
 
-def mail_send(to, subject, body, attachments=[], cc=[], bcc=[], smtphost="", fromaddr=""):
-    """ example: ret = mail_send(['john@doe.org'], 'this subject', 'that body',['attach'])"""
+def mail_send(to, subject, body, attachments=(), cc=(), bcc=(), smtphost="", fromaddr=""):
+    """ example: ret = mail_send(['john@doe.org'], 'this subject', 'that body',['file1','file2'])"""
 
-    import smtplib
+    import smtplib, socket
     from email.mime.multipart import MIMEMultipart
     from email.mime.base import MIMEBase
     from email.mime.text import MIMEText
@@ -141,7 +141,10 @@ def mail_send(to, subject, body, attachments=[], cc=[], bcc=[], smtphost="", fro
     message['Cc'] = COMMASPACE.join(cc)
     message['Bcc'] = COMMASPACE.join(bcc)
 
-    message.attach(MIMEText(body))
+    if '<html>' or '<body>' in body.lower():
+        message.attach(MIMEText(body, 'html'))
+    else:
+        message.attach(MIMEText(body, 'plain'))
 
     for f in attachments:
         part = MIMEBase('application', 'octet-stream')
@@ -158,12 +161,17 @@ def mail_send(to, subject, body, attachments=[], cc=[], bcc=[], smtphost="", fro
     for x in bcc:
         addresses.append(x)
 
-    smtp = smtplib.SMTP(smtphost)
-    smtp.sendmail(fromaddr, addresses, message.as_string())
-    smtp.close()
-
-    return True
-
+    try:
+        smtp = smtplib.SMTP(smtphost)
+        smtp.sendmail(fromaddr, addresses, message.as_string())
+        smtp.close()
+        return True
+    except smtplib.SMTPException as err:
+        sys.stderr.write(str(err))
+        sys.stderr.write('\n')
+        return False
+    
+    
 def _get_mx_from_email_or_fqdn(addr):
     """retrieve the first mail exchanger dns name from an email address."""
     import re
