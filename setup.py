@@ -68,9 +68,6 @@ setup(
     install_requires=[
         'requests',
         'python-hostlist',
-        'psycopg2-binary',
-        'PyMySQL',
-        'pyodbc',
         'python-swiftclient',
         'python-keystoneclient',
         ],
